@@ -1,0 +1,26 @@
+{
+    "name": "tijanidevit/query-filter",
+    "description": "A simple, expressive, and powerful Laravel package that provides dynamic Eloquent models filters with clean syntax. It helps build reusable, maintainable, and readable query logic in Laravel apps.",
+    "type": "package",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Tijanidevit\\QueryFilter\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Mustapha Tijani",
+            "email": "thenewxpat@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Tijanidevit\\QueryFilter\\Providers\\FilterProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "require": {}
+}
