@@ -57,15 +57,19 @@ class FilterableMacros
                     }
 
                     if (is_array($val) && array_key_exists('null', $val)) {
-                        return $val['null']
-                            ? $this->whereNull($col)
-                            : $this->whereNotNull($col);
+                        $this->where(function ($q) use ($col, $val) {
+                            $val['null']
+                                ? $q->whereNull($col)
+                                : $q->whereNotNull($col);
+                        });
                     } elseif (is_array($val)) {
-                        return $this->whereIn($col, $val);
+                        $this->whereIn($col, $val);
                     } else {
-                        return $this->where($col, '=', $val);
+                        $this->where($col, '=', $val);
                     }
                 }
+
+                return $this; // <-- RETURN AFTER LOOP, NOT INSIDE
             }
 
             return $this;
