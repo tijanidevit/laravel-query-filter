@@ -68,8 +68,6 @@ Filter by a column or multiple columns.
 User::query()->filterBy('status', 'active')->get();
 
 
-User::query()->filterBy('status', 'active')->filterBy('age', '>' 18)->get();
-
 User::query()->filterBy([
     'name'   => 'Jane',
     'status' => ['active', 'pending'],
