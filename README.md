@@ -8,7 +8,41 @@ A simple, expressive, and powerful Laravel package that provides dynamic Eloquen
 
 ---
 
+## 📦 Why Use This Package?
+
+In many Laravel applications, especially admin dashboards, reporting systems, and search filters, developers write the same filtering logic over and over:
+
+```php
+    $query = User::query();
+
+    if (request()->filled('name')) {
+        $query->where('name', request('name'));
+    }
+
+    if (request()->filled('status')) {
+        $query->where('status', request('status'));
+    }
+
+    return $query->get();
+```
+
+With Query Filter, you can simplify this:
+
+```php
+    User::query()
+        ->filterBy([
+            'name' => request('name'),
+            'status' => request('status'),
+        ])
+        ->get();
+
+```
+
+---
+
 ## 📦 Installation
+
+Run the composer command below:
 
 ```bash
 composer require tijanidevit/query-filter
@@ -42,8 +76,8 @@ User::query()->filterBy([
 ])->get();
 ```
 
--   Handles `null`, arrays, or empty values smartly.
--   Validates that the column exists in the database.
+- Handles `null`, arrays, or empty values smartly.
+- Validates that the column exists in the database.
 
 ---
 
@@ -112,26 +146,6 @@ Post::query()->latestBy('published_at')->get();
 
 ---
 
-## 🛡 Column Validation
-
-Before applying a filter, this package checks if the column exists in the schema.
-
-### Why?
-
--   Prevents SQL errors.
--   Ensures safer dynamic queries.
-
-### Caching
-
--   Uses Laravel's cache to remember table columns (12 hours by default).
--   Clears cache with:
-
-```bash
-php artisan cache:clear
-```
-
----
-
 ## 📘 Full Example
 
 ```php
@@ -155,8 +169,8 @@ $users = User::query()
 
 ## ✅ Requirements
 
--   Laravel 9, 10, 11
--   PHP 8.0+
+- Laravel 9, 10, 11
+- PHP 8.0+
 
 ---
 
