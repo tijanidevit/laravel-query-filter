@@ -14,6 +14,7 @@ class FilterableMacros
         static::registerFilterBy();
         static::registerFilterByRelation();
         static::registerSearch();
+        static::registerOrSearch();
         static::registerSearchByRelation();
         static::registerFilterByMonth();
         static::registerFilterByYear();
@@ -90,6 +91,21 @@ class FilterableMacros
             }
 
             return $this;
+        });
+    }
+
+    protected static function registerOrSearch(): void
+    {
+        Builder::macro('orSearch', function (array $columns, ?string $value = null) {
+            if (empty($value)) {
+                return $this;
+            }
+
+            return $this->where(function ($query) use ($columns, $value) {
+                foreach ($columns as $column) {
+                    $query->orWhere($column, 'like', "%{$value}%");
+                }
+            });
         });
     }
 
