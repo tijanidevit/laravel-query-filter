@@ -232,18 +232,36 @@ class FilterableMacros
 
     protected static function registerFilterByDateRange(): void
     {
-        Builder::macro('filterByDateRange', function ($dateFrom = null, $dateTo = null, $column = 'created_at') {
-            if (isset($dateFrom)) {
-                $this->where($column, '>=', Carbon::parse($dateFrom)->startOfDay());
+        Builder::macro('filterByDateRange', function (
+            $dateFrom = null,
+            $dateTo = null,
+            string $column = 'created_at',
+            ?string $timezone = null
+        ) {
+            $timezone = $timezone
+                ?? config('app.query_timezone', config('app.timezone', 'UTC'))
+                ?? 'UTC';
+
+            if ($dateFrom) {
+                $this->where(
+                    $column,
+                    '>=',
+                    Carbon::parse($dateFrom, $timezone)->startOfDay()->timezone('UTC')
+                );
             }
 
-            if (isset($dateTo)) {
-                $this->where($column, '<=', Carbon::parse($dateTo)->endOfDay());
+            if ($dateTo) {
+                $this->where(
+                    $column,
+                    '<=',
+                    Carbon::parse($dateTo, $timezone)->endOfDay()->timezone('UTC')
+                );
             }
 
             return $this;
         });
     }
+
 
     protected static function registerSortResultBy(): void
     {
