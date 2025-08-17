@@ -189,33 +189,72 @@ class FilterableMacros
 
     protected static function registerFilterByMonth(): void
     {
-        Builder::macro('filterByMonth', function ($month, $column = 'created_at') {
-            if (is_array($month) && !empty($month)) {
-                return $this->whereIn(DB::raw("MONTH($column)"), $month);
+        Builder::macro('filterByMonth', function (
+            $month,
+            string $column = 'created_at',
+            ?string $timezone = null
+        ) {
+            if (empty($month)) {
+                return $this;
             }
 
-            if (!empty($month)) {
-                return $this->whereMonth($column, $month);
+            // 1. Use runtime → 2. config → 3. fallback to UTC
+            $timezone = $timezone
+                ?? config('queryfilter.timezone', config('app.timezone', 'UTC'))
+                ?? 'UTC';
+
+            if (is_array($month)) {
+                return $this->where(function ($query) use ($month, $column, $timezone) {
+                    foreach ($month as $m) {
+                        $start = Carbon::create(null, $m, 1, 0, 0, 0, $timezone)->startOfMonth()->timezone('UTC');
+                        $end   = Carbon::create(null, $m, 1, 0, 0, 0, $timezone)->endOfMonth()->timezone('UTC');
+                        $query->orWhereBetween($column, [$start, $end]);
+                    }
+                });
             }
 
-            return $this;
+            // Single month
+            $start = Carbon::create(null, $month, 1, 0, 0, 0, $timezone)->startOfMonth()->timezone('UTC');
+            $end   = Carbon::create(null, $month, 1, 0, 0, 0, $timezone)->endOfMonth()->timezone('UTC');
+
+            return $this->whereBetween($column, [$start, $end]);
         });
     }
+
 
     protected static function registerFilterByYear(): void
     {
-        Builder::macro('filterByYear', function ($year, $column = 'created_at') {
-            if (is_array($year) && !empty($year)) {
-                return $this->whereIn(DB::raw("YEAR($column)"), $year);
+        Builder::macro('filterByYear', function (
+            $year,
+            string $column = 'created_at',
+            ?string $timezone = null
+        ) {
+            if (empty($year)) {
+                return $this;
             }
 
-            if (!empty($year)) {
-                return $this->whereYear($column, $year);
+            $timezone = $timezone
+                ?? config('queryfilter.timezone', config('app.timezone', 'UTC'))
+                ?? 'UTC';
+
+            if (is_array($year)) {
+                return $this->where(function ($query) use ($year, $column, $timezone) {
+                    foreach ($year as $y) {
+                        $start = Carbon::create($y, 1, 1, 0, 0, 0, $timezone)->startOfYear()->timezone('UTC');
+                        $end   = Carbon::create($y, 12, 31, 23, 59, 59, $timezone)->endOfYear()->timezone('UTC');
+                        $query->orWhereBetween($column, [$start, $end]);
+                    }
+                });
             }
 
-            return $this;
+            // Single year
+            $start = Carbon::create($year, 1, 1, 0, 0, 0, $timezone)->startOfYear()->timezone('UTC');
+            $end   = Carbon::create($year, 12, 31, 23, 59, 59, $timezone)->endOfYear()->timezone('UTC');
+
+            return $this->whereBetween($column, [$start, $end]);
         });
     }
+
 
     protected static function registerFilterFromRequest(): void
     {
@@ -239,7 +278,7 @@ class FilterableMacros
             ?string $timezone = null
         ) {
             $timezone = $timezone
-                ?? config('app.query_timezone', config('app.timezone', 'UTC'))
+                ?? config('queryfilter.timezone', config('app.timezone', 'UTC'))
                 ?? 'UTC';
 
             if ($dateFrom) {
@@ -298,12 +337,24 @@ class FilterableMacros
 
     protected static function registerFilterByDate(): void
     {
-        Builder::macro('filterByDate', function ($date, $column = 'created_at') {
-            if ($date) {
-                return $this->whereDate($column, '=', $date);
+        Builder::macro('filterByDate', function (
+            $date,
+            string $column = 'created_at',
+            ?string $timezone = null
+        ) {
+            if (!$date) {
+                return $this;
             }
 
-            return $this;
+            $timezone = $timezone
+                ?? config('queryfilter.timezone', config('app.timezone', 'UTC'))
+                ?? 'UTC';
+
+            $startOfDay = Carbon::parse($date, $timezone)->startOfDay()->timezone('UTC');
+            $endOfDay   = Carbon::parse($date, $timezone)->endOfDay()->timezone('UTC');
+
+            return $this->whereBetween($column, [$startOfDay, $endOfDay]);
         });
     }
+
 }
