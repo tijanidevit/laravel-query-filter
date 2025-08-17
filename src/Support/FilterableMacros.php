@@ -234,11 +234,11 @@ class FilterableMacros
     {
         Builder::macro('filterByDateRange', function ($dateFrom = null, $dateTo = null, $column = 'created_at') {
             if (isset($dateFrom)) {
-                $this->whereDate($column, '>=', Carbon::parse($dateFrom)->startOfDay());
+                $this->where($column, '>=', Carbon::parse($dateFrom)->startOfDay());
             }
 
             if (isset($dateTo)) {
-                $this->whereDate($column, '<=', Carbon::parse($dateTo)->endOfDay());
+                $this->where($column, '<=', Carbon::parse($dateTo)->endOfDay());
             }
 
             return $this;
