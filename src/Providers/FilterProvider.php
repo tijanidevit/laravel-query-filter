@@ -12,7 +12,7 @@ class FilterProvider extends ServiceProvider
      */
     public function register(): void {
         $this->mergeConfigFrom(
-            __DIR__.'/../config/query-filter.php', 'query-filter'
+            __DIR__.'/../../config/query-filter.php', 'query-filter'
         );
     }
 
@@ -22,7 +22,7 @@ class FilterProvider extends ServiceProvider
     public function boot(): void
     {
         $this->publishes([
-            __DIR__.'/../config/query-filter.php' => config_path('query-filter.php'),
+            __DIR__.'/../../config/query-filter.php' => config_path('query-filter.php'),
         ], 'config');
         FilterableMacros::boot();
     }
