@@ -158,7 +158,10 @@ class FilterableMacros
                 // Handle whereRelation style: ['column', 'operator', 'value']
                 if (array_is_list($conditions) && count($conditions) === 3) {
                     [$column, $operator, $value] = $conditions;
-                    $this->whereRelation($relation, $column, $operator, $value, $boolean);
+
+                    // ✅ Correct usage (don’t force $boolean)
+                    $this->whereRelation($relation, $column, $operator, $value);
+
                     continue;
                 }
 
@@ -195,6 +198,7 @@ class FilterableMacros
             return $this;
         });
     }
+
 
 
     protected static function registerFilterByMonth(): void
