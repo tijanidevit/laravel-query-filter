@@ -152,12 +152,19 @@ class FilterableMacros
         ) {
             foreach ($relations as $relation => $conditions) {
                 if (empty($conditions)) {
-                    continue; // skip if no conditions passed
+                    continue;
                 }
 
+                // Handle whereRelation style: ['column', 'operator', 'value']
+                if (array_is_list($conditions) && count($conditions) === 3) {
+                    [$column, $operator, $value] = $conditions;
+                    $this->whereRelation($relation, $column, $operator, $value, $boolean);
+                    continue;
+                }
+
+                // Handle whereHas style (associative array of conditions)
                 $this->whereHas($relation, function ($query) use ($conditions, $boolean) {
                     foreach ($conditions as $column => $condition) {
-                        // Skip empty values (but allow "0" and false explicitly)
                         if (
                             ($condition === null || $condition === '' || (is_array($condition) && empty($condition)))
                             && !is_bool($condition)
@@ -175,7 +182,9 @@ class FilterableMacros
                             $query->where($column, $operator, $value, $boolean);
                         } elseif (is_array($condition) && array_key_exists('null', $condition)) {
                             $isNull = $condition['null'];
-                            $isNull ? $query->whereNull($column, $boolean) : $query->whereNotNull($column, $boolean);
+                            $isNull
+                                ? $query->whereNull($column, $boolean)
+                                : $query->whereNotNull($column, $boolean);
                         } else {
                             $query->where($column, '=', $condition, $boolean);
                         }
@@ -186,6 +195,7 @@ class FilterableMacros
             return $this;
         });
     }
+
 
     protected static function registerFilterByMonth(): void
     {
