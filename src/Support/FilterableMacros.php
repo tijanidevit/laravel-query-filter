@@ -18,6 +18,7 @@ class FilterableMacros
         static::registerSearchByRelation();
         static::registerFilterByMonth();
         static::registerFilterByYear();
+        static::registerFilterWhereIn();
         static::registerFilterFromRequest();
         static::registerFilterByDateRange();
         static::registerSortResultBy();
@@ -159,7 +160,7 @@ class FilterableMacros
                 if (array_is_list($conditions) && count($conditions) === 3) {
                     [$column, $operator, $value] = $conditions;
 
-                    // ✅ Correct usage (don’t force $boolean)
+                    // Correct usage (don’t force $boolean)
                     $this->whereRelation($relation, $column, $operator, $value);
 
                     continue;
@@ -368,6 +369,49 @@ class FilterableMacros
             $endOfDay   = Carbon::parse($date, $timezone)->endOfDay()->timezone('UTC');
 
             return $this->whereBetween($column, [$startOfDay, $endOfDay]);
+        });
+    }
+
+    protected static function registerFilterWhereIn(): void
+    {
+        Builder::macro('filterWhereIn', function (...$args) {
+            // Multiple columns with arrays
+            if (isset($args[0]) && is_array($args[0]) && array_keys($args[0]) !== range(0, count($args[0]) - 1)) {
+                foreach ($args[0] as $column => $values) {
+                    if ($column && $values) {
+                        // Convert comma-separated string to array
+                        if (is_string($values)) {
+                            $values = array_map('trim', explode(',', $values));
+                        }
+                        if (count($values) > 0) {
+                            $this->whereIn($column, $values);
+                        }
+                    }
+                }
+                return $this;
+            }
+
+            // Single column
+            $column = $args[0] ?? null;
+            if (!$column) return $this;
+
+            $values = $args[1] ?? [];
+
+            // Handle string as comma-separated values
+            if (is_string($values)) {
+                $values = array_map('trim', explode(',', $values));
+            }
+
+            // Handle remaining arguments if values not array
+            if (!is_array($values)) {
+                $values = array_slice($args, 1);
+            }
+
+            if (count($values) > 0) {
+                return $this->whereIn($column, $values);
+            }
+
+            return $this;
         });
     }
 
