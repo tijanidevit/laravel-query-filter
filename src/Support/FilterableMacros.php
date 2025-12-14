@@ -4,7 +4,6 @@ namespace Tijanidevit\QueryFilter\Support;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Closure;
 
 class FilterableMacros
@@ -14,7 +13,7 @@ class FilterableMacros
         static::registerFilterBy();
         static::registerFilterByRelation();
         static::registerSearch();
-        static::registerOrSearch();
+        static::registerSearchIn();
         static::registerSearchByRelation();
         static::registerFilterByMonth();
         static::registerFilterByYear();
@@ -80,34 +79,53 @@ class FilterableMacros
 
     protected static function registerSearch(): void
     {
-        Builder::macro('search', function ($column, $value = null) {
-            // Allow: search('name', 'tj')
-            if (is_string($column)) {
-                if ($value === null || $value === '') {
-                    return $this;
-                }
-
-                // Default "like" search condition
-                return $this->where($column, 'like', "%$value%");
-            }
-
-            return $this;
-        });
-    }
-
-    protected static function registerOrSearch(): void
-    {
-        Builder::macro('orSearch', function (array $columns, ?string $value = null) {
-            if (empty($value)) {
-                return $this;
-            }
+        Builder::macro('search', function ($columns, $value = null) {
+            if (!$columns) return $this;
 
             return $this->where(function ($query) use ($columns, $value) {
-                foreach ($columns as $column) {
-                    $query->orWhere($column, 'like', "%{$value}%");
+
+                // Case: search('email', 'gmail')
+                if (is_string($columns)) {
+                    if ($value !== null && $value !== '')
+                        $query->where($columns, 'like', "%$value%");
+                    return;
+                }
+
+                // Case: search(['name' => 'john', 'city' => 'lagos'])
+                if (is_array($columns)) {
+                    foreach ($columns as $column => $val) {
+                        if ($val !== null && $val !== '')
+                            $query->where($column, 'like', "%$val%");
+                    }
                 }
             });
         });
+    }
+
+    protected static function registerSearchIn(): void
+    {
+        Builder::macro('searchIn', function ($columns, $value = null) {
+        if (!$columns) return $this;
+
+        return $this->where(function ($query) use ($columns, $value) {
+
+            // Case: searchIn(['first_name', 'email'], 'john')
+            if (is_array($columns) && array_is_list($columns)) {
+                foreach ($columns as $column) {
+                    if ($value !== null && $value !== '')
+                        $query->orWhere($column, 'like', "%$value%");
+                }
+                return;
+            }
+
+            // Case: searchIn(['status' => ['pending', 'active']])
+            foreach ($columns as $column => $vals) {
+                if (is_array($vals)) {
+                    $query->whereIn($column, $vals);
+                }
+            }
+        });
+    });
     }
 
     protected static function registerSearchByRelation(): void
