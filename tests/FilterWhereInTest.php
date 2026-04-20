@@ -112,6 +112,10 @@ class FilterWhereInTest extends TestCase
 
 class TestProduct extends Model
 {
+    use \Tijanidevit\QueryFilter\Traits\Filterable;
+
+    protected $table = 'products';
     protected $guarded = [];
+    protected $casts = ['visible' => 'boolean'];
     public $timestamps = false;
 }

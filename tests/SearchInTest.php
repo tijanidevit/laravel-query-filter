@@ -116,6 +116,8 @@ class SearchInTest extends TestCase
 
 class Person extends Model
 {
+    use \Tijanidevit\QueryFilter\Traits\Filterable;
+
     protected $guarded = [];
     public $timestamps = true;
 }

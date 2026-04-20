@@ -76,6 +76,8 @@ class FilterByTest extends TestCase
 
 class User extends Model
 {
+    use \Tijanidevit\QueryFilter\Traits\Filterable;
+
     protected $guarded = [];
     public $timestamps = true;
 }

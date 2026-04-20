@@ -8,9 +8,9 @@ A simple, expressive, and powerful Laravel package that provides dynamic Eloquen
 
 ---
 
-## Why Use This Package?
+## 🎯 Why Use This Package?
 
-In many Laravel applications, especially admin dashboards, reporting systems, and search filters, developers often repeat the same filtering logic:
+In many Laravel applications—especially admin dashboards, reporting systems, and search pipelines—developers often repeat the same verbose filtering logic in controllers:
 
 ```php
 $query = User::query();
@@ -26,7 +26,7 @@ if (request()->filled('status')) {
 return $query->get();
 ```
 
-**With Query Filter, you can simplify this:**
+**With Query Filter, you can simplify this down to a single, beautifully readable chain:**
 
 ```php
 User::query()
@@ -36,18 +36,19 @@ User::query()
     ])
     ->get();
 ```
+*It safely ignores empty parameters automatically, so you never write an `if (request()->filled(...))` block again.*
 
 ---
 
-## Installation
+## 🚀 Installation
 
-Run the composer command:
+Install the package via Composer:
 
 ```bash
 composer require tijanidevit/query-filter
 ```
 
-The package supports auto-discovery. If you are using Laravel < 5.5, add the provider manually in `config/app.php`:
+*(Optional)* The package supports Auto-Discovery. If you are using an older version of Laravel (pre-5.5), manually register the provider in `config/app.php`:
 
 ```php
 'providers' => [
@@ -55,287 +56,135 @@ The package supports auto-discovery. If you are using Laravel < 5.5, add the pro
 ]
 ```
 
----
-
-## Available Filters
-
-### `filterBy()`
-
-Filter by a column or multiple columns.
+### Applying the Trait
+Query Filter utilizes Laravel Scopes. To enable filtering on a model, add the `Filterable` trait:
 
 ```php
-// Single column
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Tijanidevit\QueryFilter\Traits\Filterable;
+
+class User extends Model
+{
+    use Filterable;
+}
+```
+
+---
+
+## ⚡ Database Drivers & ILIKE Support
+
+The package dynamically detects your database connection. If you are using **PostgreSQL**, all `search()`, `searchIn()`, `orSearch()`, and `searchByRelation()` methods will automatically utilize the case-insensitive `ILIKE` operator. For all other SQL databases (MySQL, SQLite), it will default natively to `LIKE`.
+
+---
+
+## 📚 Available Filters
+
+### `filterBy()`
+Filter by a single column or multiple columns using exact matches.
+
+```php
+// Single column matching
 User::query()->filterBy('status', 'active')->get();
 
-// Multiple columns
+// Multiple columns exact matching
 User::query()->filterBy([
     'name' => 'Jane',
-    'status' => ['active', 'pending'],
+    'status' => ['active', 'pending'], // Safely wraps to WhereIn natively!
 ])->get();
 
-// Handle null values
+// Secure Null checks automatically
 User::query()->filterBy([
     'email_verified_at' => ['null' => true],
 ])->get();
 ```
 
-- Handles `null`, arrays, or empty values smartly.
-- Fully chainable with other macros.
-
----
-
 ### `filterByRelation()`
-
-Filter using related models:
+Filter directly using nested related models cleanly without verbose `whereHas` queries.
 
 ```php
 Post::query()->filterByRelation([
-    'user' => [
+    'author' => [
         'status' => 'active',
+        'is_banned' => false
     ]
 ])->get();
 ```
 
-Supports:
-
-- Closures for advanced queries
-- Nullable checks (`['null' => true]`)
-- Standard operators: `['operator', 'value']`
-
----
-
 ### `filterWhereIn()`
-
-Flexible `WHERE IN` filtering for single or multiple columns.
+Flexible `WHERE IN` filtering parsing arrays and strings automatically.
 
 ```php
-// Single column with array
+// Standard Array
 User::query()->filterWhereIn('status', ['active', 'pending'])->get();
 
-// Single column with multiple values as arguments
-User::query()->filterWhereIn('status', 'active', 'pending')->get();
-
-// Single column with comma-separated string
+// Comma-delimited strings (Ideal for external API requests)
 User::query()->filterWhereIn('status', 'active,pending')->get();
 
-// Multiple columns with arrays
-User::query()->filterWhereIn([
-    'status' => ['active', 'pending'],
-    'role' => ['admin', 'editor']
-])->get();
-
-// Multiple columns with comma-separated strings
-User::query()->filterWhereIn([
-    'status' => 'active,pending',
-    'role' => 'admin,editor'
-])->get();
+// Variadic arguments
+User::query()->filterWhereIn('status', 'active', 'pending')->get();
 ```
 
-- Automatically converts comma-separated strings into arrays.
-- Skips empty or null values.
-- Fully chainable.
-
----
-
-### `filterByMonth()` / `filterByYear()`
-
-Filter by month(s) or year(s):
+### `search()`, `searchIn()`, and `orSearch()`
+Powerful dynamic `LIKE` search abstractions.
 
 ```php
-Order::query()
-    ->filterByMonth([1, 2]) // January and February
-    ->filterByYear([2023, 2024])
+// AND logic across multiple fields
+User::query()->search(['name' => 'John', 'city' => 'Lagos'])->get();
+
+// searchIn(): Grouped OR searching across multiple fields using a single keyword constraint
+User::query()->searchIn(['first_name', 'last_name', 'email'], 'john')->get();
+
+// orSearch(): Chained top-level grouped OR blocks gracefully appended to pre-existing searches
+Article::query()
+    ->search('category', 'technology')
+    ->orSearch(['title', 'summary'], 'laravel')
     ->get();
 ```
 
-- Accepts single value or array of values.
-- Uses app timezone or configurable timezone and converts to UTC for queries.
-
----
-
-### `filterByDate()`
-
-Filter records by a single date:
-
-```php
-User::query()->filterByDate('2024-01-01')->get();
-```
-
-- Converts to start and end of day automatically.
-- Accepts optional timezone.
-
----
-
-### `filterByDateRange()`
-
-Filter records between two dates:
-
-```php
-Order::query()->filterByDateRange('2024-01-01', '2024-03-01')->get();
-```
-
-- Accepts optional timezone.
-- Works with either `dateFrom`, `dateTo`, or both.
-
----
-
 ### `filterFromRequest()`
-
-Automatically apply filters from request input:
+Automatically bind constraints directly from incoming HTTP Request objects by mapping input keys to database columns.
 
 ```php
 User::query()->filterFromRequest(request(), [
-    'name' => 'name',
-    'email' => 'email',
-    'status' => 'status',
+    'email' => 'login_email',   // Translates to: where email = request('login_email')
+    'department_id' => 'dept',
 ])->get();
 ```
 
-- Accepts an array where keys are database columns and values are request keys.
-- Skips empty or missing request values.
-
----
-
-### `sortResultBy()`, `latestBy()`, `oldestBy()`
-
-Sort results easily:
+### `filterByDate()`, `filterByMonth()`, `filterByYear()`, `filterByDateRange()`
+Timezone-aware date parsing spanning specific bounding frames neatly.
 
 ```php
-User::query()->sortResultBy('created_at', 'desc')->get();
+// Filter single explicit matching date period ranges
+User::query()->filterByDate('2024-01-01')->get();
 
-Post::query()->latestBy('published_at')->get();
+// Search date boundaries safely ignoring omitted limits
+Order::query()->filterByDateRange(request('date_from'), request('date_to'))->get();
 
-Post::query()->oldestBy('published_at')->get();
+// Isolate month timelines seamlessly
+Post::query()->filterByMonth([1, 2])->get();
 ```
 
----
-
-### `search()` / `orSearch()` / `searchByRelation()`
-
-Search for patterns in columns:
+### Sorting Helpers
+Chainable dynamic chronological sorting bounds.
 
 ```php
-// Search single column
-User::query()->search('name', 'John')->get();
-
-// Search multiple columns (OR)
-User::query()->orSearch(['name', 'email'], 'John')->get();
-
-// Search in a related model
-Post::query()->searchByRelation('user', [
-    'name' => 'John',
-])->get();
-```
-
-- Default search uses SQL `LIKE %value%`.
-- Supports relations, closures, and null checks.
-
----
-
-## Full Example
-
-```php
-$users = User::query()
-    ->filterBy([
-        'name' => request('name'),
-        'status' => request('status'),
-        'email_verified_at' => ['null' => request('missing_email_verification')],
-    ])
-    ->filterByRelation([
-        'roles' => [
-            'slug' => request('role_slug'),
-        ],
-    ])
-    ->filterWhereIn([
-        'department' => request('departments'), // array or comma-separated
-        'status' => 'active,pending'
-    ])
-    ->filterByDateRange(request('from'), request('to'))
-    ->sortResultBy(request('sort_by'), request('sort_dir', 'asc'))
-    ->get();
-```
-
----
-
-## 💡 Tips & Best Practices
-
-Query Filter macros are designed to be **fully chainable**, letting you compose complex queries cleanly. Here are some recommended patterns:
-
-### 1. Combine `filterBy`, `filterWhereIn`, and `filterByRelation`
-
-```php
-$users = User::query()
-    ->filterBy([
-        'status' => request('status'),
-        'email_verified_at' => ['null' => request('missing_email_verification')],
-    ])
-    ->filterWhereIn([
-        'department' => request('departments'), // accepts array or comma-separated string
-        'role' => 'admin,editor'
-    ])
-    ->filterByRelation([
-        'manager' => [
-            'status' => 'active',
-        ],
-    ])
-    ->get();
-```
-
-- Use `filterBy` for simple columns with exact or nullable values.
-- Use `filterWhereIn` when you want `IN` filtering, supporting arrays, comma-separated strings, or multiple arguments.
-- Use `filterByRelation` to filter related models without manually writing `whereHas` queries.
-
----
-
-### 2. Use `filterByDate` / `filterByDateRange` for date filtering
-
-```php
-$orders = Order::query()
-    ->filterByDate(request('date'))                     // exact day
-    ->filterByDateRange(request('from'), request('to')) // range
-    ->filterBy(['status' => request('status')])
-    ->get();
-```
-
-- Supports optional timezone.
-- Automatically converts dates to start and end of day in UTC for consistency.
-
----
-
-### 3. Search with `search`, `orSearch`, and `searchByRelation`
-
-```php
-$posts = Post::query()
-    ->search('title', request('title'))
-    ->orSearch(['content', 'summary'], request('keyword'))
-    ->searchByRelation('author', ['name' => request('author_name')])
-    ->get();
-```
-
-- `search` is for a single column.
-- `orSearch` allows searching across multiple columns.
-- `searchByRelation` searches columns in related models.
-
----
-
-### 4. Sorting and ordering
-
-```php
-$users = User::query()
-    ->filterBy(['status' => 'active'])
-    ->sortResultBy(request('sort_by', 'created_at'), request('sort_dir', 'asc'))
+User::query()
+    ->sortResultBy(request('sort_column'), request('sort_direction'))
     ->latestBy('last_login')
     ->get();
 ```
 
-- Use `sortResultBy` for dynamic column sorting.
-- Use `latestBy` or `oldestBy` for default chronological ordering.
-
 ---
 
-### 5. Combining everything
+## 💡 Advanced Best Practices
 
-For a full-featured admin or reporting query:
+Query Filter macros are designed to act composably, linking infinitely together parsing structural queries perfectly.
+
+### The "God Query" Approach
+For complex Admin panels parsing 15 distinct variables simultaneously, combine macros sequentially:
 
 ```php
 $users = User::query()
@@ -344,8 +193,7 @@ $users = User::query()
         'email_verified_at' => ['null' => request('missing_email_verification')],
     ])
     ->filterWhereIn([
-        'department' => request('departments'),
-        'role' => 'admin,editor'
+        'department' => request('departments'), // Array or comma-delimited natively evaluated
     ])
     ->filterByRelation([
         'manager' => [
@@ -353,44 +201,24 @@ $users = User::query()
         ],
     ])
     ->filterByDateRange(request('from'), request('to'))
-    ->orSearch(['name', 'email'], request('search'))
-    ->sortResultBy(request('sort_by', 'created_at'), request('sort_dir', 'asc'))
+    ->searchIn(['name', 'email', 'biography'], request('search_query'))
+    ->sortResultBy(request('sort_by', 'created_at'), request('sort_dir', 'desc'))
     ->latestBy('last_login')
     ->get();
 ```
 
-- Keep your queries readable and maintainable by chaining macros instead of nesting raw `where` and `orWhere` calls.
-- The macros handle nulls, empty values, and type conversions, so your code stays clean.
+### Structural Security Recommendations
+
+1. **Always validate request inputs** before blindly dumping `request()` into maps. 
+2. Use arrays or comma-delimited structures intelligently parsed with `filterWhereIn()` bridging dashboard parameters structurally.
+3. Funnel heavy endpoint evaluations entirely into `filterFromRequest()` maps for ultra-slim API Controllers.
 
 ---
 
-### Recommendations
+## 🛠 Requirements
 
-1. **Always validate request inputs** before passing to filters if needed.
-2. **Use arrays or comma-separated strings** with `filterWhereIn` for maximum flexibility.
-3. **Combine macros in logical order**: `filterBy` → `filterWhereIn` → `filterByRelation` → `filterByDate/DateRange` → `search` → `sort`.
-4. **Leverage `filterFromRequest`** for repetitive request-based filtering to simplify controllers.
-
-This approach keeps your controllers slim and your queries consistent across the app.
-
-```
-
----
-
-## Requirements
-
-- Laravel 9, 10, 11
+- Laravel 9, 10, or 11+
 - PHP 8.0+
 
----
-
-## License
-
-MIT © [Mustapha Tijani](mailto:thenewxpat@gmail.com)
-
----
-
-## Contributing
-
-Pull requests and issues are welcome. Help improve the package and make it more awesome!
-```
+## 📄 License
+This package is open-sourced software licensed under the MIT license.

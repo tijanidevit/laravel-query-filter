@@ -3,8 +3,6 @@
 namespace Tijanidevit\QueryFilter\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Tijanidevit\QueryFilter\Support\FilterableMacros;
-
 class FilterProvider extends ServiceProvider
 {
     /**
@@ -24,6 +22,5 @@ class FilterProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../../config/query-filter.php' => config_path('query-filter.php'),
         ], 'config');
-        FilterableMacros::boot();
     }
 }
